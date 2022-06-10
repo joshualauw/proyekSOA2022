@@ -1,11 +1,12 @@
 const express = require("express");
-const { addWatchList, getWatchlist } = require("./joshua.controller");
-const { addWatchListValidate } = require("./joshua.validation");
+const controller = require("./joshua.controller");
 const { checkToken } = require("../helpers/functions");
 
 const router = express.Router();
 
-router.post("/watchlist/add", checkToken, addWatchListValidate, addWatchList);
-router.get("/watchlist", checkToken, getWatchlist);
+router.post("/watchlist/add", checkToken, controller.addWatchList);
+router.get("/watchlist", checkToken, controller.getAllWatchlist);
+router.get("/watchlist/:symbol", checkToken, controller.getWatchlist);
+router.delete("/watchlist/:symbol", checkToken, controller.deleteWatchlist);
 
 module.exports = router;

@@ -19,17 +19,11 @@ model Users {
 }
 
 model Watchlist {
-  stock_id       Int    @id @default(autoincrement())
-  api_key_ref    Users  @relation(fields: [api_key], references: [api_key])
-  api_key        String
-  symbol         String
-  last_price     Float
-  change         Float
-  change_percent Float
-  volume         String //format (angka + K/M/B)
-  avg            Float
-  high           Float
-  low            Float
+  watchlist_id Int    @id @default(autoincrement())
+  api_key_ref  Users  @relation(fields: [api_key], references: [api_key])
+  api_key      String
+  symbol       String @unique
+  name         String
 }
 
 enum TipeUser {
