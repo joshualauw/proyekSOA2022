@@ -7,39 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-//ini define struktur database e
-//install extension prisma
-// model Post {
-//   id        Int      @id @default(autoincrement())
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-//   title     String   @db.VarChar(255)
-//   content   String?
-//   published Boolean  @default(false)
-//   author    User     @relation(fields: [authorId], references: [id])
-//   authorId  Int
-// }
-
-// model Profile {
-//   id     Int     @id @default(autoincrement())
-//   bio    String?
-//   user   User    @relation(fields: [userId], references: [id])
-//   userId Int     @unique
-// }
-
 model Users {
-  user_id      Int      @id @default(autoincrement())
-  email   String   @unique
-  name    String 
-  password String
-  nomor_telepon String @unique
-  api_key String @unique
-  tipe_user TipeUser @default(free) 
+  user_id       Int         @id @default(autoincrement())
+  email         String      @unique
+  name          String
+  password      String
+  nomor_telepon String      @unique
+  api_key       String      @unique
+  tipe_user     TipeUser    @default(free)
+  Watchlist     Watchlist[]
 }
 
-enum TipeUser{
+model Watchlist {
+  stock_id       Int    @id @default(autoincrement())
+  api_key_ref    Users  @relation(fields: [api_key], references: [api_key])
+  api_key        String
+  symbol         String
+  last_price     Float
+  change         Float
+  change_percent Float
+  volume         String //format (angka + K/M/B)
+  avg            Float
+  high           Float
+  low            Float
+}
+
+enum TipeUser {
   free
   premium
 }
 
-//kalo wes pake command npx prisma migrate dev --name init
+// == CARA JALANKAN PRISMA ==
+// 1. npm install
+// 2. kalo ada perubahan di schema.prisma jangan lupa npx prisma migrate dev --name <nama_perubahan>
+// 3. jalankan npx prisma generate buat update prisma client
+// 4. require helpers/db.js
