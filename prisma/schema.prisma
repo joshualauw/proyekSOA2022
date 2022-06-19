@@ -8,14 +8,16 @@ datasource db {
 }
 
 model Users {
-  user_id       Int         @id @default(autoincrement())
-  email         String      @unique
+  user_id       Int             @id @default(autoincrement())
+  email         String          @unique
   name          String
   password      String
-  nomor_telepon String      @unique
-  api_key       String      @unique
-  tipe_user     TipeUser    @default(free)
+  nomor_telepon String          @unique
+  api_key       String          @unique
+  tipe_user     TipeUser        @default(free)
   Watchlist     Watchlist[]
+  orders        orders[]
+  notifications notifications[]
 }
 
 model Watchlist {
@@ -26,9 +28,58 @@ model Watchlist {
   name         String
 }
 
+model orders {
+  order_id    Int       @id @default(autoincrement())
+  symbol      String    @db.VarChar(50)
+  api_key_ref Users     @relation(fields: [api_key], references: [api_key])
+  api_key     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  price       Decimal   @default(0) @db.Decimal(10, 5)
+  qty         Decimal   @db.Decimal(10, 5)
+  fill_price  Decimal   @default(0) @db.Decimal(10, 5)
+  buy         Boolean
+  cancel      Boolean   @default(false)
+  type        TypeOrder
+}
+
+model notifications {
+  notification_id Int       @id @default(autoincrement())
+  symbol          String    @db.VarChar(50)
+  api_key_ref     Users     @relation(fields: [api_key], references: [api_key])
+  api_key         String
+  type            TypeAlert
+  price           Decimal   @db.Decimal(10, 5)
+  email           String    @db.VarChar(50)
+  enable          Boolean   @default(true)
+}
+
+model Transfer {
+  trans_id    Int         @id @default(autoincrement())
+  user_id_ref Int
+  photo       String      @unique
+  date_upload DateTime    @default(now())
+  status      StatusTrans @default(pending)
+}
+
 enum TipeUser {
   free
   premium
+}
+
+enum StatusTrans {
+  pending
+  success
+}
+
+enum TypeOrder {
+  limit
+  market
+}
+
+enum TypeAlert {
+  above
+  below
 }
 
 // == CARA JALANKAN PRISMA ==
