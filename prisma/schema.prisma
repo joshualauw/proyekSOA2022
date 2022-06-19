@@ -26,9 +26,22 @@ model Watchlist {
   name         String
 }
 
+model Transfer{
+  trans_id Int         @id @default(autoincrement())
+  user_id_ref Int
+  photo String      @unique
+  date_upload DateTime   @default(now())
+  status StatusTrans @default(pending)
+}
+
 enum TipeUser {
   free
   premium
+}
+
+enum StatusTrans {
+  pending
+  success
 }
 
 // == CARA JALANKAN PRISMA ==
