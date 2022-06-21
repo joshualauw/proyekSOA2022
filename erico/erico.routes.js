@@ -6,63 +6,61 @@ const Trans = require('./model_trans');
 
 function checkPremium(req, res, next) {
     //console.log(req.dataUser)
-    if(req.dataUser.tipe_user != "premium"){
-        return res.status(403).send({ message: 'You are not allowed'})
+    if (req.dataUser.tipe_user != "premium") {
+        return res.status(403).send({
+            message: 'You are not allowed'
+        })
     }
     next();
 }
 
-const multer = require("multer");
-const fs = require("fs");
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "./upload");
-    },
-    filename: (req, file, cb) => {
-        let filename = file.originalname;
-        filename = filename.split(".");
-        let extension = filename[filename.length - 1];
-        cb(null, Date.now().toString() + "."+extension);
-    },
-});
+const axios = require("axios").default
+const multer = require("multer")
+const FormData = require("form-data")
+const storage = multer.memoryStorage()
 
 const upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-            cb(new Error("Please upload an image"));
-        }
-        cb(null, true);
-    },
+    storage: storage
 });
 
-router.post('/register',(req, res) => {
+router.post('/register', (req, res) => {
     ctr.register(req, res);
-});
-
-router.post('/login',(req, res) => {
+})
+router.post('/login', (req, res) => {
     ctr.login(req, res);
 })
-
-router.put('/update',checkApiKey,(req, res) => {
+router.put('/update', checkApiKey, (req, res) => {
     ctr.update(req, res);
 })
 
-router.get('/stockRecomendation',[checkApiKey,checkPremium],(req, res)=>{
-    ctr.recomend(req,res);
+router.get('/stockRecomendation', [checkApiKey, checkPremium], (req, res) => {
+    ctr.recomend(req, res);
+})
+router.get('/stockPriceByDate', (req, res) => {
+    ctr.priceDate(req, res);
 })
 
-router.get('/stockPriceByDate',(req, res)=>{
-    ctr.priceDate(req,res);
-})
-
-router.post('/upgrade',[checkApiKey,upload.single('photo')],async (req, res)=>{
+router.post('/upgrade', [checkApiKey, upload.single('photo')], async (req, res) => {
 
     try {
+        const form = new FormData();
+        const fnam = req.dataUser.name + Date.now().toString();
+        form.append("file", req.file.buffer,fnam );
+        const response = await axios.post(
+            "https://api.anonfiles.com/upload",
+            form, {
+                headers: {
+                    ...form.getHeaders()
+                }
+            }
+        )
+
+        const data = response.data;
+        const url = data.data.file.url.full;
+
         let tran = {
             user_id_ref: req.dataUser.user_id,
-            photo: req.file.filename,
+            photo: url,
         };
         await Trans.add(tran)
         delete tran.user_id_ref
@@ -71,8 +69,10 @@ router.post('/upgrade',[checkApiKey,upload.single('photo')],async (req, res)=>{
         tran.status = "pending"
         return res.status(201).send(tran);
     } catch (error) {
-        console.error(error.message);
-        return res.status(400).send({message: "please insert photo"});
+        console.error(error);
+        return res.status(400).send({
+            message: "please insert photo"
+        });
     }
 })
 
