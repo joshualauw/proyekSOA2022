@@ -16,10 +16,11 @@ class Database {
 }
 
 let db = new Database({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "investmgmt",
+    host: "mysql-80783-0.cloudclusters.net",
+    port: "16913",
+    user: "admin",
+    password: "RrajpiOr",
+    database: "dbproyek_soa",
 });
 
 module.exports = db;

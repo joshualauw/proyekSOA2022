@@ -16,8 +16,15 @@ model Users {
   api_key       String      @unique
   tipe_user     TipeUser    @default(free)
   Watchlist     Watchlist[]
-  Orders        Orders[]
-  Alerts        Alerts[]
+  orders        orders[]
+  notifications notifications[]
+  Transfer      Transfer[]
+}
+
+model Admin {
+  admin_id Int    @id @default(autoincrement())
+  username String
+  password String
 }
 
 model Watchlist {
@@ -59,7 +66,8 @@ model Alerts {
 
 model Transfer {
   trans_id    Int         @id @default(autoincrement())
-  user_id_ref Int
+  user_id_ref Users       @relation(fields: [user_id], references: [user_id])
+  user_id     Int
   photo       String      @unique
   date_upload DateTime    @default(now())
   status      StatusTrans @default(pending)
