@@ -16,6 +16,7 @@ const { AxiosError } = require("axios");
 function genFormValidation(schema, reqName) {
   return (req, res, next) => {
     const validationResult = schema.validate(req[reqName]);
+    
     if (validationResult.error) {
       return res
         .status(400)
@@ -29,7 +30,7 @@ function genFormValidation(schema, reqName) {
 
 Router.post(
   "/order",
-  [genFormValidation(orderSchema), checkToken],
+  [genFormValidation(orderSchema, 'body'), checkToken],
   createOrder
 );
 Router.delete("/order/:id", checkToken, cancelOrder);

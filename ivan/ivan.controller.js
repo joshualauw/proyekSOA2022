@@ -9,42 +9,39 @@ const emailTemplate = require("./alertemplate");
 
 const {
   SIDE_BUY,
-  SIDE_SELL,
   TYPE_MARKET,
   TYPE_LIMIT,
   ALERT_ABOVE,
-  ALERT_BELOW,
-  T_STOCK,
-  T_CRYPTO,
-  T_FOREX
 } = require("./utils");
 
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 axios.defaults.headers.post["Content-Type"] =
   "application/x-www-form-urlencoded";
 
+const typeStock = { Stock: "Common Stock", Crypto: "Crypto", Forex: "FX" };
 const api_key_finnhub = process.env["APIKEY_FINNHUB"];
 const api_key_mailgun = process.env["APIKEY_MAILGUN"];
-const api_key_currency =  process.env["APIKEY_CURRENCYAPI"];
+const domain_mailgun = process.env["DOMAIN_MAILGUN"];
+const api_key_currency = process.env["APIKEY_CURRENCYAPI"];
 
 const finnhubWs = new FinnhubWS(api_key_finnhub);
 const mailgun = new Mailgun(formData);
-const mg = mailgun.client({ username: "api", key: api_key_mailgun });
-
+const mg = mailgun.client({
+  username: "api",
+  key: api_key_mailgun,
+  domain: domain_mailgun,
+});
 
 let trackingPrice = async () => {
-  let data = (
-    await prisma.orders.groupBy({
-      by: ["symbol"],
-      where: {
-        fill_price: {
-          not: 0,
-        },
-      },
-    })
-  ).map(({ symbol }) => symbol);
+  let tracking_data = await Promise.all(
+    (
+      await prisma.$queryRaw`SELECT symbol FROM alerts WHERE enable = 1 
+      UNION
+      SELECT symbol FROM orders WHERE fill_price = 0 `
+    ).map(({ symbol }) => symbol)
+  );
 
-  finnhubWs.addBunchofStock(data);
+  finnhubWs.addBunchofStock(tracking_data);
 };
 
 finnhubWs.on("onReady", async (data) => {
@@ -72,67 +69,66 @@ const fillOrder = async (id, fillPrice) => {
     console.log(e);
   }
 };
-const typeStock = {Stock:'Common Stock', Crypto:'Crypto', Forex:'FX'}
 
 const getStock = async (req, res) => {
   try {
-    const { q } = req.params
-    let { currency, type } = req.query
+    const { q } = req.params;
+    let { currency, type } = req.query;
 
     let query = `https://finnhub.io/api/v1/search?q=${q}&token=${api_key_finnhub}`;
     let call = await axios.get(query);
-    let { result } = call.data
-    if(type){
-      let filterType = typeStock[type]
-      result = await Promise.all ( result.filter(x => x.type.includes(filterType)) )
+    let { result } = call.data;
+    if (type) {
+      let filterType = typeStock[type];
+      result = await Promise.all(
+        result.filter((x) => x.type.includes(filterType))
+      );
     }
 
-    let currRate = 1
-    if(currency){
-      let listCurrency = `https://currencyapi.net/api/v1/rates?key=${api_key_currency}&output=JSON`
-      let { rates } = ( await axios.get(listCurrency) ).data
-      currRate = rates[currency]
+    let currRate = 1;
+    if (currency) {
+      let listCurrency = `https://currencyapi.net/api/v1/rates?key=${api_key_currency}&output=JSON`;
+      let { rates } = (await axios.get(listCurrency)).data;
+      currRate = rates[currency];
     }
-    let ctr=0 
-    let returnData = []
-    for(let item of result){
-      try{
-        let {error, data} = await axios.get(
+    let ctr = 0;
+    let returnData = [];
+    for (let item of result) {
+      try {
+        let { data } = await axios.get(
           `https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${api_key_finnhub}`
-        )
-        if(data && data.c != 0){
-          price =  +currRate * +data.c;
-          returnData.push( {
+        );
+        if (data && data.c != 0) {
+          price = +currRate * +data.c;
+          returnData.push({
             ...item,
             price,
-            baseCurrency : currency || 'USD'
-          })
+            baseCurrency: currency || "USD",
+          });
           ctr++;
-          if(ctr == 5) break;
+          if (ctr == 5) break;
         }
-      }catch(err){
+      } catch (err) {
         continue;
       }
     }
-  
+
     return res.status(200).send(returnData);
   } catch (e) {
-    console.log(e)
-    if(e instanceof AxiosError){
+    if (e instanceof AxiosError) {
       return res.status(500).send({ error: e.response.data });
     }
     return res.status(500).send({ error: "Internal server error!" });
   }
 };
 
-const sendEmail = async ({ email, note, symbol, exchange, price, type }) => {
+const sendEmail = async ({ email, note, symbol, price, type }) => {
   try {
-    let urlExchange =
-      "https://" + exchange.split(":")[0].toLowerCase() + ".com";
-
-    mg.messages.create("sandbox-123.mailgun.org", {
+    let exchange = symbol.split(":")[0].toLowerCase();
+    let urlExchange = "https://" + exchange + ".com";
+    mg.messages.create(domain_mailgun, {
       from: "Alert Man <mailgun@sandbox-123.mailgun.org>",
-      to: email,
+      to: [email],
       html: emailTemplate({ note, symbol, exchange, price, type, urlExchange }),
     });
 
@@ -151,8 +147,8 @@ const checkPriceAndAlertUser = async ({ symbol, price }) => {
   });
 
   for (let i of notifs) {
-    let isNotif = i.type == ALERT_ABOVE ? i.price <= price : i.price >= price;  
-    if (isNotif && await sendEmail(i)) {
+    let isNotif = i.type == ALERT_ABOVE ? i.price < price : i.price > price;
+    if (isNotif && (await sendEmail(i))) {
       await prisma.alerts.update({
         where: {
           alert_id: i.alert_id,
@@ -185,7 +181,7 @@ const checkAndExecuteOrder = async ({ symbol, price }) => {
       await fillOrder(i.order_id, price);
       size--;
       continue;
-    }  
+    }
 
     if (i.price <= price) {
       await fillOrder(i.order_id, price);
@@ -332,7 +328,7 @@ const cancelOrder = async (req, res) => {
         order_id: Number(id),
       },
     });
-    
+
     if (checkOrder.fill_price != 0) {
       return res.status(400).send({ msg: "Order sudah tereksekusi!" });
     }
@@ -457,5 +453,5 @@ module.exports = {
   setPriceNotification,
   updateNotification,
   getPriceNotification,
-  getStock
+  getStock,
 };

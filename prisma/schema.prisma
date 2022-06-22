@@ -16,8 +16,8 @@ model Users {
   api_key       String      @unique
   tipe_user     TipeUser    @default(free)
   Watchlist     Watchlist[]
-  orders        orders[]
-  notifications notifications[]
+  Orders        Orders[]
+  Alerts        Alerts[]
   Transfer      Transfer[]
 }
 
