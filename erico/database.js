@@ -19,7 +19,7 @@ let db = new Database({
     host: "localhost",
     user: "root",
     password: "",
-    database: "dbproyek_soa",
+    database: "investmgmt",
 });
 
 module.exports = db;

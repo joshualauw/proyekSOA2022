@@ -72,7 +72,7 @@ const addWatchList = async (req, res) => {
     if (!req.body.symbol) return res.status(400).send({ message: "symbol is required!" });
     const symbol = req.body.symbol;
     const result = await axios.get(
-      `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${symbol}&apikey=${process.env.VINTAGE_API_KEY}`
+      `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${symbol}&apikey=I6EK7OWYYSF6035F`
     );
     let name = null;
     result.data.bestMatches.forEach((data) => {
