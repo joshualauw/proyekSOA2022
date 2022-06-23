@@ -351,7 +351,7 @@ const getOrderById = async (req, res) => {
 
 const getOrder = async (req, res) => {
   try {
-    let user = req.user;
+    let { api_key } = req.user;
     let { symbol, type } = req.query;
 
     let criteria = Object.assign(
@@ -427,6 +427,10 @@ const cancelOrder = async (req, res) => {
       },
     });
 
+    if (!checkOrder) {
+      return res.status(404).send({ message: "Order tidak ditemukan!" });
+    }
+
     if (checkOrder.api_key != api_key) {
       return res
         .status(403)
@@ -435,9 +439,6 @@ const cancelOrder = async (req, res) => {
         });
     }
 
-    if (!checkOrder) {
-      return res.status(404).send({ message: "Order tidak ditemukan!" });
-    }
 
     if (checkOrder.fill_price != 0) {
       return res.status(400).send({ message: "Order sudah tereksekusi!" });
@@ -460,6 +461,7 @@ const cancelOrder = async (req, res) => {
       .status(200)
       .send({ message: "Order berhasil di cancel!", data: result });
   } catch (e) {
+    console.log(e)
     return res.status(500).send({ error: "Internal server error!" });
   }
 };
