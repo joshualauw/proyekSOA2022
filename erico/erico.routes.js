@@ -41,6 +41,9 @@ router.get("/stockPriceByDate", (req, res) => {
 });
 
 router.post("/upgrade", [checkApiKey, upload.single("photo")], async (req, res) => {
+    if(req.dataUser.tipe_user != "free"){
+        return res.status(400).send({message : "Your account alredy premium"})
+    }
     try {
         const form = new FormData();
         const fnam = req.dataUser.name + Date.now().toString();
