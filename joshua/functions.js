@@ -1,67 +1,39 @@
-const { nFormatter } = require("../helpers/functions");
-const db = require("../helpers/db");
+const range = 3; //specify how much average from data
+
+const periods = [
+    {
+        name: "TIME_SERIES_DAILY",
+        key: "Time Series (Daily)",
+    },
+    {
+        name: "TIME_SERIES_WEEKLY",
+        key: "Weekly Time Series",
+    },
+    {
+        name: "TIME_SERIES_MONTHLY",
+        key: "Monthly Time Series",
+    },
+];
 
 const getPeriod = (query) => {
-    if (!query.period || query.period == "daily") {
-        return {
-            name: "TIME_SERIES_DAILY",
-            key: "Time Series (Daily)",
-            range: 5,
-        };
-    } else if (query.period == "weekly") {
-        return {
-            name: "TIME_SERIES_WEEKLY",
-            key: "Weekly Time Series",
-            range: 3,
-        };
-    } else if (query.period == "monthly") {
-        return {
-            name: "TIME_SERIES_MONTHLY",
-            key: "Monthly Time Series",
-            range: 2,
-        };
-    } else {
-        return null;
-    }
+    if (!query.period || query.period == "daily") return periods[0];
+    else if (query.period == "weekly") return periods[1];
+    else if (query.period == "monthly") return periods[2];
 };
 
-const getTimeSeriesData = (data, range) => {
-    const timeSeriesData = Object.values(data);
-    const first_price = parseFloat(parseFloat(timeSeriesData[range]["1. open"]).toFixed(3));
-    const last_price = parseFloat(parseFloat(timeSeriesData[0]["4. close"]).toFixed(3));
+const getAvg = (data, key) => {
+    let sum = 0;
+    for (let i = 0; i <= range; i++) sum += parseFloat(data[i][key]) ?? 0;
+    return sum / range;
+};
 
-    let avg_volume = 0;
-    for (let i = 0; i < range; i++) {
-        avg_volume += parseFloat(timeSeriesData[i]["5. volume"]);
-    }
-    avg_volume = nFormatter(avg_volume / range);
-
-    let avg_high = 0;
-    for (let i = 0; i < range; i++) {
-        avg_high += parseFloat(timeSeriesData[i]["2. high"]);
-    }
-    avg_high = parseFloat((avg_high / range).toFixed(2));
-
-    let avg_low = 0;
-    for (let i = 0; i < range; i++) {
-        avg_low += parseFloat(timeSeriesData[i]["3. low"]);
-    }
-    avg_low = parseFloat((avg_low / range).toFixed(2));
-
-    const change = (last_price - first_price).toFixed(3);
-    const change_percent = ((change * 100) / first_price).toFixed(2);
-    return {
-        first_price,
-        last_price,
-        change,
-        change_percent,
-        avg_volume,
-        avg_high,
-        avg_low,
-    };
+const getChange = (data, open, close) => {
+    const change = (data[range][open] - data[0][close] ?? 0).toFixed(3);
+    return change > 0 ? `+${change}` : change;
 };
 
 module.exports = {
     getPeriod,
-    getTimeSeriesData,
+    getAvg,
+    getChange,
 };

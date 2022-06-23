@@ -8,16 +8,16 @@ datasource db {
 }
 
 model Users {
-  user_id       Int             @id @default(autoincrement())
-  email         String          @unique
+  user_id       Int         @id @default(autoincrement())
+  email         String      @unique
   name          String
   password      String
-  nomor_telepon String          @unique
-  api_key       String          @unique
-  tipe_user     TipeUser        @default(free)
+  nomor_telepon String      @unique
+  api_key       String      @unique
+  tipe_user     TipeUser    @default(free)
   Watchlist     Watchlist[]
-  orders        orders[]
-  notifications notifications[]
+  Orders        Orders[]
+  Alerts        Alerts[]
   Transfer      Transfer[]
 }
 
@@ -35,30 +35,33 @@ model Watchlist {
   name         String
 }
 
-model orders {
+model Orders {
   order_id    Int       @id @default(autoincrement())
   symbol      String    @db.VarChar(50)
   api_key_ref Users     @relation(fields: [api_key], references: [api_key])
   api_key     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
   price       Decimal   @default(0) @db.Decimal(10, 5)
   qty         Decimal   @db.Decimal(10, 5)
   fill_price  Decimal   @default(0) @db.Decimal(10, 5)
   buy         Boolean
   cancel      Boolean   @default(false)
   type        TypeOrder
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
-model notifications {
-  notification_id Int       @id @default(autoincrement())
-  symbol          String    @db.VarChar(50)
-  api_key_ref     Users     @relation(fields: [api_key], references: [api_key])
-  api_key         String
-  type            TypeAlert
-  price           Decimal   @db.Decimal(10, 5)
-  email           String    @db.VarChar(50)
-  enable          Boolean   @default(true)
+model Alerts {
+  alert_id    Int       @id @default(autoincrement())
+  symbol      String    @db.VarChar(50)
+  api_key_ref Users     @relation(fields: [api_key], references: [api_key])
+  api_key     String
+  type        TypeAlert
+  price       Decimal   @db.Decimal(10, 5)
+  email       String    @db.VarChar(50)
+  note        String    @db.VarChar(255)
+  enable      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Transfer {

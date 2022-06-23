@@ -21,6 +21,15 @@ async function checkToken(req, res, next) {
   }
 }
 
+const permitPremiumUser = 
+  (req, res, next) => {
+    if(req.user.tipe_user != "premium"){
+      return res.status(403).send({message: `Hanya user premium yang boleh mengakses endpoint ini!`})
+    }
+    next()
+  }
+
+
 function genRandomId(length) {
   let result = "";
   let chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -52,4 +61,5 @@ module.exports = {
   checkToken,
   genRandomId,
   nFormatter,
+  permitPremiumUser
 };

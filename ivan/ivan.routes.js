@@ -1,25 +1,61 @@
-const {createOrder, cancelOrder, getOrder, setPriceNotification} = require('./ivan.controller')
-const { checkToken } = require('../helpers/functions')
-const Router = require('express').Router()
+const {
+  createOrder,
+  cancelOrder,
+  getOrder,
+  setPriceAlert,
+  getPriceAlert,
+  updateAlert,
+  getStock,
+  deleteAlert,
+  getOrderById,
+  getPriceAlertById,
+} = require("./ivan.controller");
+const { checkToken, permitPremiumUser } = require("../helpers/functions");
+const Router = require("express").Router();
+const Joi = require("joi");
+const { orderSchema, alertSchema, searchSymbolSchema } = require("./schema");
+const { AxiosError } = require("axios");
 
-const { orderSchema, alertSchema } = require('./schema')
+function genFormValidation(schema, reqName) {
+  return (req, res, next) => {
+    const validationResult = schema.validate(req[reqName]);
 
-function genFormValidation(schema){
-    return (req,res,next) =>{
-        const validationResult = schema.validate(req.body)
-        if(validationResult.error){
-            return res.status(400).send({message: validationResult.error.details[0].message})
-        }else{
-            req.data = validationResult.value
-            next()
-        }
+    if (validationResult.error) {
+      return res
+        .status(400)
+        .send({ message: validationResult.error.details[0].message });
+    } else {
+      req.data = validationResult.value;
+      next();
     }
-  }
+  };
+}
 
-Router.post('/order', [genFormValidation(orderSchema), checkToken], createOrder)
-Router.delete('/order/:id', checkToken, cancelOrder)
-Router.get('/order/:id?', checkToken, getOrder)
-Router.get('/alert', [checkToken], setPriceNotification)
-Router.post('/alert', [genFormValidation(alertSchema), checkToken], setPriceNotification)
+Router.post(
+  "/order",
+  [genFormValidation(orderSchema, "body"), checkToken, permitPremiumUser],
+  createOrder
+);
+Router.delete("/order/:id", [checkToken, permitPremiumUser], cancelOrder);
+Router.get("/order/", [checkToken, permitPremiumUser], getOrder);
 
-module.exports = Router
+Router.get("/order/:id", [checkToken, permitPremiumUser], getOrderById);
+Router.get("/alert/", [checkToken, permitPremiumUser], getPriceAlert);
+Router.get("/alert/:id", [checkToken, permitPremiumUser], getPriceAlertById);
+Router.post(
+  "/alert",
+  [genFormValidation(alertSchema, "body"), checkToken, permitPremiumUser],
+  setPriceAlert
+);
+Router.put(
+  "/alert/:id",
+  [genFormValidation(alertSchema, "body"), checkToken, permitPremiumUser],
+  updateAlert
+);
+Router.delete("/alert/:id", [checkToken, permitPremiumUser], deleteAlert);
+Router.get(
+  "/symbol/:q",
+  [genFormValidation(searchSymbolSchema, "query"), checkToken],
+  getStock
+);
+module.exports = Router;

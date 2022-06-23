@@ -1,6 +1,9 @@
 const { PrismaClientKnownRequestError } = require("@prisma/client/runtime");
 const { default: axios } = require("axios");
-const { getPeriod, getTimeSeriesData } = require("./functions");
+const { getPeriod, getAvg, getChange } = require("./functions");
+const { OPEN, HIGH, LOW, CLOSE, VOLUME, SYMBOL, NAME } = require("./utils");
+const { nFormatter } = require("../helpers/functions");
+
 const db = require("../helpers/db");
 const jwt = require("jsonwebtoken");
 
@@ -17,21 +20,17 @@ const getWatchlist = async (req, res) => {
         const result = await axios.get(
             `https://www.alphavantage.co/query?function=${period.name}&symbol=${watchlist.symbol}&apikey=${process.env.VINTAGE_API_KEY}`
         );
-        const { first_price, last_price, avg_volume, change, change_percent, avg_high, avg_low } = getTimeSeriesData(
-            result.data[period.key],
-            period.range
-        );
+        const data = Object.values(result.data[period.key]);
         return res.status(200).send({
-            period: req.query.period || "daily",
+            period: period.key,
             symbol: watchlist.symbol,
             name: watchlist.name,
-            first_price,
-            last_price,
-            avg_high,
-            avg_low,
-            avg_volume,
-            change: change > 0 ? "+" + change : change,
-            change_percent: change_percent > 0 ? "+" + change_percent + "%" : change_percent + "%",
+            first_price: data[0][OPEN],
+            last_price: data[0][CLOSE],
+            avg_high: getAvg(data, HIGH).toFixed(3),
+            avg_low: getAvg(data, LOW).toFixed(3),
+            avg_volume: nFormatter(getAvg(data, VOLUME)),
+            change: getChange(data, OPEN, CLOSE),
         });
     } catch (err) {
         console.log(err);
@@ -41,29 +40,25 @@ const getWatchlist = async (req, res) => {
 
 const getAllWatchlist = async (req, res) => {
     try {
+        let period = getPeriod(req.query);
+        if (!period) return res.status(400).send({ message: "invalid query" });
+
         const watchlists = await db.watchlist.findMany();
         let realTimeWatchlist = [];
         for (let i = 0; i < watchlists.length; i++) {
             const watchlist = watchlists[i];
-            let period = getPeriod(req.query);
-            if (!period) return res.status(400).send({ message: "invalid query" });
             const result = await axios.get(
                 `https://www.alphavantage.co/query?function=${period.name}&symbol=${watchlist.symbol}&apikey=${process.env.VINTAGE_API_KEY}`
             );
-            const { first_price, last_price, avg_volume, change } = getTimeSeriesData(
-                result.data[period.key],
-                period.range
-            );
+            const data = Object.values(result.data[period.key]);
             realTimeWatchlist.push({
                 symbol: watchlist.symbol,
-                name: watchlist.name,
-                first_price,
-                last_price,
-                avg_volume,
-                change: change > 0 ? "+" + change : change,
+                first_price: data[0][OPEN],
+                last_price: data[0][CLOSE],
+                change: getChange(data, OPEN, CLOSE),
             });
         }
-        return res.status(200).send({ period: req.query.period || "daily", realTimeWatchlist });
+        return res.status(200).send({ period: period.key, watchlists: realTimeWatchlist });
     } catch (err) {
         console.log(err);
         return res.status(500).send({ message: "something went wrong" });
@@ -79,11 +74,15 @@ const addWatchList = async (req, res) => {
         );
         let name = null;
         result.data.bestMatches.forEach((data) => {
-            if (data["1. symbol"] == symbol) {
-                name = data["2. name"];
+            if (data[SYMBOL] == symbol) {
+                name = data[NAME];
             }
         });
         if (!name) return res.status(400).send({ message: "invalid symbol" });
+        const watchlistCount = await db.watchlist.findMany({ where: { api_key: req.user.api_key } });
+        if (req.user.type == "free" && watchlistCount.length > 5) {
+            return res.status(400).send({ message: "free limit only 5 stocks" });
+        }
         const watchlist = await db.watchlist.create({
             data: {
                 symbol,
