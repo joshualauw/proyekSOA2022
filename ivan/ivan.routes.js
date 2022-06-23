@@ -8,9 +8,9 @@ const {
   getStock,
   deleteAlert,
   getOrderById,
-  getPriceAlertById
+  getPriceAlertById,
 } = require("./ivan.controller");
-const { checkToken } = require("../helpers/functions");
+const { checkToken, permitPremiumUser } = require("../helpers/functions");
 const Router = require("express").Router();
 const Joi = require("joi");
 const { orderSchema, alertSchema, searchSymbolSchema } = require("./schema");
@@ -33,28 +33,26 @@ function genFormValidation(schema, reqName) {
 
 Router.post(
   "/order",
-  [genFormValidation(orderSchema, "body"), checkToken],
+  [genFormValidation(orderSchema, "body"), checkToken, permitPremiumUser],
   createOrder
 );
-Router.delete("/order/:id", checkToken, cancelOrder);
-Router.get("/order/", checkToken, getOrder);
+Router.delete("/order/:id", [checkToken, permitPremiumUser], cancelOrder);
+Router.get("/order/", [checkToken, permitPremiumUser], getOrder);
 
-Router.get("/order/:id", checkToken, getOrderById);
-Router.get("/alert/", checkToken, getPriceAlert);
-Router.get("/alert/:id", checkToken, getPriceAlertById);
+Router.get("/order/:id", [checkToken, permitPremiumUser], getOrderById);
+Router.get("/alert/", [checkToken, permitPremiumUser], getPriceAlert);
+Router.get("/alert/:id", [checkToken, permitPremiumUser], getPriceAlertById);
 Router.post(
   "/alert",
-  [genFormValidation(alertSchema, "body"), checkToken],
+  [genFormValidation(alertSchema, "body"), checkToken, permitPremiumUser],
   setPriceAlert
 );
-
-
 Router.put(
   "/alert/:id",
-  [genFormValidation(alertSchema, "body"), checkToken],
+  [genFormValidation(alertSchema, "body"), checkToken, permitPremiumUser],
   updateAlert
 );
-Router.delete("/alert/:id", [checkToken], deleteAlert);
+Router.delete("/alert/:id", [checkToken, permitPremiumUser], deleteAlert);
 Router.get(
   "/symbol/:q",
   [genFormValidation(searchSymbolSchema, "query"), checkToken],

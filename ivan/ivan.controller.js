@@ -109,8 +109,8 @@ const getStock = async (req, res) => {
         continue;
       }
     }
-    if(!returnData.length){
-      return res.status(404).send({message: "Stock tidak ditemukan!"})
+    if (!returnData.length) {
+      return res.status(404).send({ message: "Stock tidak ditemukan!" });
     }
     return res.status(200).send(returnData);
   } catch (e) {
@@ -247,12 +247,10 @@ const createOrder = async (req, res) => {
       buy,
       api_key,
     };
-    
+
     order = Object.assign(
       order,
-      type === TYPE_MARKET
-        ? {fill_price: price}
-        : null,
+      type === TYPE_MARKET ? { fill_price: price } : null
     );
 
     let insertOrder = await prisma.orders.create({ data: order });
@@ -280,11 +278,11 @@ const getOrderById = async (req, res) => {
     let user = req.user;
 
     const orders = await prisma.orders.findUnique({
-        where: {
-          order_id: +id,
-        },
-      })
-    
+      where: {
+        order_id: +id,
+      },
+    });
+
     if (!orders) {
       return res.status(404).send({ message: "Order tidak ditemukan!" });
     }
@@ -315,29 +313,35 @@ const getOrderById = async (req, res) => {
         5
       );
       roe = Math.floor(((price - orders.fill_price) / orders.fill_price) * 100);
-      if(!orders.buy){
-        roe = -(roe)
-        pnl = -(pnl)
+      if (!orders.buy) {
+        roe = -roe;
+        pnl = -pnl;
       }
     }
 
     Object.assign(orders, {
-      price: (orders.price * currRate).toFixed(5), 
+      price: (orders.price * currRate).toFixed(5),
       fill_price: (orders.fill_price * currRate).toFixed(5),
       pnl,
       roe: roe + "%",
       side: orders.buy ? `BUY` : `SELL`,
       status: orders.cancel ? `CANCELED` : `NEW`,
       type: orders.type.toUpperCase(),
-      baseCurrency: currency || "USD"
+      baseCurrency: currency || "USD",
     });
 
-    let returnData = (({ buy, cancel, type, api_key, createdAt, updatedAt, ...hasil }) => ({ ...hasil, createdAt, updatedAt }))(
-      orders
-    );
+    let returnData = (({
+      buy,
+      cancel,
+      type,
+      api_key,
+      createdAt,
+      updatedAt,
+      ...hasil
+    }) => ({ ...hasil, createdAt, updatedAt }))(orders);
     return res.status(200).send(returnData);
   } catch (e) {
-    console.log(e)
+    console.log(e);
     if (e instanceof AxiosError) {
       return res.status(500).send({ error: e.response.data });
     }
@@ -360,7 +364,7 @@ const getOrder = async (req, res) => {
             },
           },
       type == null ? null : { type },
-      {api_key}
+      { api_key }
     );
 
     const orders = await Promise.all(
@@ -372,27 +376,37 @@ const getOrder = async (req, res) => {
             },
           },
         })
-      ).map(async ({ buy, cancel, api_key, type, createdAt, updatedAt, ...rest }) => {
-        let user = await prisma.users.findUnique({
-          where:{
-            api_key: api_key
-          }
-        })
-        return {
-          ...rest,
-          user: user.email,
-          side: buy ? `BUY` : `SELL`,
-          status: cancel ? `CANCELED` : `NEW`,
-          type: type.toUpperCase(),
-          createdAt, 
-          updatedAt
-        };
-      })
+      ).map(
+        async ({
+          buy,
+          cancel,
+          api_key,
+          type,
+          createdAt,
+          updatedAt,
+          ...rest
+        }) => {
+          let user = await prisma.users.findUnique({
+            where: {
+              api_key: api_key,
+            },
+          });
+          return {
+            ...rest,
+            user: user.email,
+            side: buy ? `BUY` : `SELL`,
+            status: cancel ? `CANCELED` : `NEW`,
+            type: type.toUpperCase(),
+            createdAt,
+            updatedAt,
+          };
+        }
+      )
     );
 
     return res.status(200).json(orders);
   } catch (e) {
-    console.log(e)
+    console.log(e);
     if (e instanceof AxiosError) {
       return res.status(500).send({ error: e.response.data });
     }
@@ -402,7 +416,7 @@ const getOrder = async (req, res) => {
 
 const cancelOrder = async (req, res) => {
   try {
-    let { api_key } = req.user
+    let { api_key } = req.user;
     let { id } = req.params;
     if (isNaN(id)) {
       return res.status(400).send({ message: "Id harus berupa angka!" });
@@ -414,7 +428,11 @@ const cancelOrder = async (req, res) => {
     });
 
     if (checkOrder.api_key != api_key) {
-      return res.status(403).send({ message: "Anda tidak berhak untuk membatalkan transaksi ini!" });
+      return res
+        .status(403)
+        .send({
+          message: "Anda tidak berhak untuk membatalkan transaksi ini!",
+        });
     }
 
     if (!checkOrder) {
@@ -481,7 +499,7 @@ const deleteAlert = async (req, res) => {
 
 const updateAlert = async (req, res) => {
   try {
-    let { api_key } = req.user
+    let { api_key } = req.user;
     let { id } = req.params;
     const { symbol, type, price, email, exchange, note } = req.data;
     let data_lama = await prisma.alerts.findUnique({
@@ -489,8 +507,10 @@ const updateAlert = async (req, res) => {
         alert_id: +id,
       },
     });
-    if(data_lama.api_key != api_key){
-      return res.status(403).send({ message: "Anda tidak berhak untuk update alert ini!" });
+    if (data_lama.api_key != api_key) {
+      return res
+        .status(403)
+        .send({ message: "Anda tidak berhak untuk update alert ini!" });
     }
     if (!data_lama) {
       return res.status(404).send({ message: "Alert tidak ditemukan" });
@@ -500,7 +520,7 @@ const updateAlert = async (req, res) => {
     }
     let { error, data } = await checkSymbol(exchange, symbol);
     if (error) {
-      return res.status(error.status).send({message: error.message});
+      return res.status(error.status).send({ message: error.message });
     }
     let newSymbol = data.symbol;
     data_lama = (({ alert_id, enable, ...rest }) => ({ ...rest }))(data_lama);
@@ -527,10 +547,10 @@ const updateAlert = async (req, res) => {
       });
       return res.status(200).send({ data_lama, data_baru });
     } else {
-      return res.status(200).send({message: 'Tidak ada yang diganti!'});
+      return res.status(200).send({ message: "Tidak ada yang diganti!" });
     }
   } catch (e) {
-    console.log(e)
+    console.log(e);
     if (e instanceof AxiosError) {
       return res.status(500).send({ error: e.response.data });
     }
@@ -539,9 +559,9 @@ const updateAlert = async (req, res) => {
 };
 
 const getPriceAlert = async (req, res) => {
-  try{
-    let { api_key } = req.user
-    
+  try {
+    let { api_key } = req.user;
+
     let { symbol, type } = req.query;
 
     let criteria = Object.assign(
@@ -557,21 +577,32 @@ const getPriceAlert = async (req, res) => {
       { api_key }
     );
 
-    let alerts = await Promise.all( (await prisma.alerts.findMany({
-      where:{
-        AND: {
-          ...criteria
-        }
-      }
-    })).map( ({api_key, enable,  createdAt, updatedAt, ...rest}) =>  {return {...rest, status: (enable) ? 'enable' : 'disabled' , createdAt, updatedAt}} ) ) 
-    
-    if(!alerts.length){
-      return res.status(404).send({message: "Anda belum punya alert!"})
+    let alerts = await Promise.all(
+      (
+        await prisma.alerts.findMany({
+          where: {
+            AND: {
+              ...criteria,
+            },
+          },
+        })
+      ).map(({ api_key, enable, createdAt, updatedAt, ...rest }) => {
+        return {
+          ...rest,
+          status: enable ? "enable" : "disabled",
+          createdAt,
+          updatedAt,
+        };
+      })
+    );
+
+    if (!alerts.length) {
+      return res.status(404).send({ message: "Anda belum punya alert!" });
     }
 
-    return res.status(200).send(alerts)
+    return res.status(200).send(alerts);
   } catch (e) {
-    console.log(e)
+    console.log(e);
     if (e instanceof AxiosError) {
       return res.status(500).send({ error: e.response.data });
     }
@@ -579,17 +610,17 @@ const getPriceAlert = async (req, res) => {
   }
 };
 
-const getPriceAlertById = async (req,res)=>{
-  try{
-    let { api_key } = req.user
+const getPriceAlertById = async (req, res) => {
+  try {
+    let { api_key } = req.user;
     let { currency } = req.query;
-    
+
     let { id } = req.params;
     let alerts = await prisma.alerts.findUnique({
-      where:{
-        alert_id: +id
-      }
-    })
+      where: {
+        alert_id: +id,
+      },
+    });
 
     if (!alerts) {
       return res.status(404).send({ message: "Alert tidak ditemukan!" });
@@ -607,19 +638,19 @@ const getPriceAlertById = async (req,res)=>{
       let { rates } = (await axios.get(listCurrency)).data;
       currRate = rates[currency];
     }
-    
-    alerts.price *= currRate
-    alerts.baseCurrency = currency || "USD"
 
-    return res.status(200).send( alerts )
-  }catch(e){
-    console.log(e)
+    alerts.price *= currRate;
+    alerts.baseCurrency = currency || "USD";
+
+    return res.status(200).send(alerts);
+  } catch (e) {
+    console.log(e);
     if (e instanceof AxiosError) {
       return res.status(500).send({ error: e.response.data });
     }
     return res.status(500).send({ error: "Internal server error!" });
   }
-}
+};
 
 const setPriceAlert = async (req, res) => {
   try {
@@ -632,7 +663,7 @@ const setPriceAlert = async (req, res) => {
 
     let { error, data } = await checkSymbol(exchange, symbol);
     if (error) {
-      return res.status(error.status).send({message: error.message});
+      return res.status(error.status).send({ message: error.message });
     }
 
     let newSymbol = data.symbol;
@@ -667,5 +698,5 @@ module.exports = {
   getPriceAlert,
   getStock,
   deleteAlert,
-  getPriceAlertById
+  getPriceAlertById,
 };
