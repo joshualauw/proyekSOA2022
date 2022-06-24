@@ -31,7 +31,7 @@ const alertSchema = Joi.object({
   symbol: Joi.string().min(2).max(10).required().uppercase(),
   type: Joi.string().valid(ALERT_ABOVE, ALERT_BELOW).required(),
   price: Joi.number().required(),
-  email: Joi.string().email().optional(),
+  email: Joi.string().email({tlds: {allow: false}}).optional(),
   note: Joi.string().optional(),
 });
 

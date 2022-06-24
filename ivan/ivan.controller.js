@@ -340,14 +340,14 @@ const getOrder = async (req, res) => {
 
         let criteria = Object.assign(
             {},
-            symbol == null
+            symbol == null || symbol == ''
                 ? null
                 : {
                       symbol: {
                           contains: symbol,
                       },
                   },
-            type == null ? null : { type },
+            type == null || type == '' ? null : { type },
             { api_key }
         );
 
@@ -535,14 +535,14 @@ const getPriceAlert = async (req, res) => {
 
         let criteria = Object.assign(
             {},
-            symbol == null
+            symbol == null || symbol == ''
                 ? null
                 : {
                       symbol: {
                           contains: symbol,
                       },
                   },
-            type == null ? null : { type },
+            type == null || type == ''  ? null : { type },
             { api_key }
         );
 
@@ -649,7 +649,7 @@ const setPriceAlert = async (req, res) => {
         let newAlert = await prisma.alerts.create({ data: alert });
         delete alert.api_key;
 
-        return res.status(200).send({ alert_id: newAlert.alert_id, ...alert });
+        return res.status(201).send({ alert_id: newAlert.alert_id, ...alert });
     } catch (e) {
         return res.status(500).send({ error: "Internal server error!" });
     }
